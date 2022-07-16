@@ -77,7 +77,7 @@ def fomatReadFile(_path) -> pd:
                                                       row['timestep'])
         dt = df.loc[index,'timestep'] - df.loc[max(index - 1, 0),'timestep']
         # 这里的0.4和0.2是根据一个格子的距离计算的，以1km为标准
-        if(abs(df.loc[index,'x'] - df.loc[max(index - 1,0),'x'])) > 0.02*dt or abs(df.loc[index,'y'] - df.loc[max(index - 1,0),'y'] > 0.01*dt):
+        if(abs(df.loc[index,'x'] - df.loc[max(index - 1,0),'x'])) > 0.002*dt or abs(df.loc[index,'y'] - df.loc[max(index - 1,0),'y'] > 0.001*dt):
             if dt == 0:continue
             # 把timestep变成和上一个相同的，这样执行drop的时候就会被去掉,又不会影响迭代顺序
             df.loc[index,'timestep'] = df.loc[index-1,'timestep']
