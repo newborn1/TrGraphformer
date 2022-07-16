@@ -31,8 +31,8 @@ def lat_lon2coor(lat, lon):
     (x,y):点的坐标.lat->x,lon->y
 
     方法:确定经纬度范围,然后映射到0-100.
-        lat:[121.94-122.37]->[0,100]
-        lon:[29.78,30.01]->[0,100]
+        lat:[121.94-122.37]->[0,100],一个格子大概0.47km
+        lon:[29.78,30.01]->[0,100],一个格子大概0.25km
 
     TODO:这里原范围和映射的范围要多少合适?需要后期调参
     '''
@@ -69,15 +69,21 @@ def fomatReadFile(_path) -> pd:
     baseBaseTime = _path.split('/')[2] + ' 00:00:00'
     baseTimestep = time.mktime(time.strptime(baseBaseTime,
                                              "%Y-%m-%d %H:%M:%S"))
-    # 遍历所有的行，同时删去异常点(间隔10s但是和前一个相差大于0.01的点就去除)
+    # 遍历所有的行，同时删去异常点(间隔1s但是和前一个相差大于0.005的点就去除)
     for index, row in df.iterrows():
         df.loc[index, 'x'], df.loc[index,
                                    'y'] = lat_lon2coor(row['x'], row['y'])
         df.loc[index, 'timestep'] = discrete_timestep(baseTimestep,
                                                       row['timestep'])
-        if(abs(df.loc[index,'x'] - df.loc[max(index - 1,0),'x'])) > 0.01 or abs(df.loc[index,'y'] - df.loc[max(index - 1,0),'y'] > 0.01):
+        dt = df.loc[index,'timestep'] - df.loc[max(index - 1, 0),'timestep']
+        # 这里的0.4和0.2是根据一个格子的距离计算的，以1km为标准
+        if(abs(df.loc[index,'x'] - df.loc[max(index - 1,0),'x'])) > 0.02*dt or abs(df.loc[index,'y'] - df.loc[max(index - 1,0),'y'] > 0.01*dt):
+            if dt == 0:continue
             # 把timestep变成和上一个相同的，这样执行drop的时候就会被去掉,又不会影响迭代顺序
             df.loc[index,'timestep'] = df.loc[index-1,'timestep']
+            # 更新为非异常的值
+            df.loc[index,'x'] = df.loc[max(index - 1,0),'x']
+            df.loc[index,'y'] = df.loc[max(index -1,0),'y']
 
     # 按照 timestep 去重,保留第一个 !!! 否者同一帧会出现同一艘船多次，同时会删除异常点
     df = df.drop_duplicates(subset=['timestep'], keep='first')
@@ -104,12 +110,15 @@ def saveToFile(base ,_path, data) -> np.void:
     return
 
 
-def interpolate(data,discrete)->None:
+def interpolate(data,discrete)->pd.DataFrame:
+    if data.shape[0] < 10:return pd.DataFrame(columns=['timesteps','mmsi','x','y'])
     timestep = data.loc[:,('timestep')]
     for i in range(timestep.size - 1):
-        if timestep.iloc[i+1]-timestep.iloc[i] > 15*60:
-            return pd.DataFrame(columns=['timesteps','mmsi','x','y'])
-    mmsi = data.loc[0,('mmsi')]
+        if timestep.iloc[i+1]-timestep.iloc[i] > 30*60:
+            # if timestep.iloc[i + 1] - timestep.iloc[i] < 60*60:
+                # return pd.DataFrame(columns=['timesteps','mmsi','x','y']) # 超过30分钟但是小于一小时就去除轨迹
+            return pd.concat([interpolate(data.iloc[:i+1],10),interpolate(data.iloc[i+1:],10)],axis=0) #超过30min的分成两段,但是时间不连续!!!小于30min的直接插值
+    mmsi = data.iloc[0].at['mmsi'] # at用于获取单个数值,iloc用于获取一个列
     x = data.loc[:,('x')]
     y = data.loc[:,('y')]
     ipo_x = splrep(timestep,x,k = 3) # 确定x和timestep的插值关系
@@ -138,10 +147,10 @@ def visulization(data):
     ax.scatter3D(data.loc[:,('timestep')], data.loc[:,('x')], data.loc[:,('y')], color=['blue'])
     ax.plot3D(data.loc[:,('timestep')], data.loc[:,('x')],data.loc[:,('y')], 'blue')
 
-    ax.set_title('{}号船舶轨迹图和轨迹点'.format(data.loc[0,('mmsi')]))
+    ax.set_title('{}号船舶轨迹图和轨迹点'.format(int(data.loc[0,('mmsi')])))
     ax.set_xlabel('时间')
     ax.set_ylabel('x坐标')
     ax.set_zlabel('y坐标')
 
-    # plt.savefig('./image/{}'.format(data.loc[0,('mmsi')]))
-    plt.show()
+    plt.savefig('./image/{}'.format(int(data.loc[0,('mmsi')])))
+    # plt.show()
