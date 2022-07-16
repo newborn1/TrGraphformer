@@ -69,14 +69,17 @@ def fomatReadFile(_path) -> pd:
     baseBaseTime = _path.split('/')[2] + ' 00:00:00'
     baseTimestep = time.mktime(time.strptime(baseBaseTime,
                                              "%Y-%m-%d %H:%M:%S"))
-    # 遍历所有的行
+    # 遍历所有的行，同时删去异常点(间隔10s但是和前一个相差大于0.01的点就去除)
     for index, row in df.iterrows():
         df.loc[index, 'x'], df.loc[index,
                                    'y'] = lat_lon2coor(row['x'], row['y'])
         df.loc[index, 'timestep'] = discrete_timestep(baseTimestep,
                                                       row['timestep'])
+        if(abs(df.loc[index,'x'] - df.loc[max(index - 1,0),'x'])) > 0.01 or abs(df.loc[index,'y'] - df.loc[max(index - 1,0),'y'] > 0.01):
+            # 把timestep变成和上一个相同的，这样执行drop的时候就会被去掉,又不会影响迭代顺序
+            df.loc[index,'timestep'] = df.loc[index-1,'timestep']
 
-    # 按照 timestep 去重,保留第一个 !!! 否者同一帧会出现同一艘船多次
+    # 按照 timestep 去重,保留第一个 !!! 否者同一帧会出现同一艘船多次，同时会删除异常点
     df = df.drop_duplicates(subset=['timestep'], keep='first')
     # df.rename(columns={'timestep': 'frame_id'})
 
@@ -140,5 +143,5 @@ def visulization(data):
     ax.set_ylabel('x坐标')
     ax.set_zlabel('y坐标')
 
-    plt.savefig('./image/{}'.format(data.loc[0,('mmsi')]))
-    # plt.show()
+    # plt.savefig('./image/{}'.format(data.loc[0,('mmsi')]))
+    plt.show()

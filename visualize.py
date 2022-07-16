@@ -2,7 +2,7 @@ from util import *
 import numpy as np
 import pandas as pd
 
-basedir = './interpolation'
+basedir = './formatData'
 folders = [os.path.join(basedir, _path) for _path in os.listdir(basedir)]
 for folder in folders:
     all_files = os.listdir(folder)
