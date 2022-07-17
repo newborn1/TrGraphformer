@@ -4,17 +4,14 @@ from util import *
 
 if __name__ == '__main__':
     dataDir = './lssddata/'
-    all_folders = os.listdir(dataDir)
-    all_folders = [os.path.join(dataDir, _path) for _path in all_folders]
-
     xMaxs, xMins, yMaxs, yMins = [], [], [], []
     times = 1
 
-    for folder in all_folders:
-        all_files = os.listdir(folder)
-        all_files = [os.path.join(folder, _path) for _path in all_files]
+    for folder in os.listdir(dataDir):
+        folder = os.path.join(dataDir, folder)
 
-        for file in all_files:
+        for file in os.listdir(folder):
+            file = os.path.join(folder, file)
             # 预处理——网格化、时间对齐、去重、出去较短的轨迹
             data = fomatReadFile(file)
             # print(data)
