@@ -1,7 +1,7 @@
 # 这个模块用于生成预处理后的数据并保存在文件夹中,同时可视化数据
 import os
-from config import Config as config
 from util import *
+from config import Config as config
 
 if __name__ == '__main__':
     dataDir = './lssddata/'
@@ -18,10 +18,9 @@ if __name__ == '__main__':
             # print(data)
             saveToFile('formatData', file, data)
             # 插值处理
-            if data.shape[0] < 30: continue  # 小于30*10s的路线删除 TODO 这个设置多少好
             data = interpolate(data, config)
             if data.empty is False:
-                saveToFile('interpolation', file, data)
+                saveToFile('data/eth', file, data)
             """
             # 这是测试找范围的
             x = data.loc[:, ('x')]
@@ -39,4 +38,4 @@ if __name__ == '__main__':
             """
 
     # 可视化部分
-    visulize('./interpolation', True)
+    visulize('./data/eth', config.pre_show)

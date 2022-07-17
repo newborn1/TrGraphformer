@@ -1,3 +1,4 @@
+# 存放各种工具函数
 import os
 import time
 import numpy as np
@@ -163,7 +164,7 @@ def interpolate(data, config) -> pd.DataFrame:
     return data
 
 
-def visulize(basedir='./interpolation', show=True):
+def visulize(basedir='./interpolation', show=True):  # 所需配置不足一个就不用config参数(不直观)
     r"""可视化根目录下basedir中的数据并保存图片
     basedir下的data:timestep、mmsi、x、y
     """

@@ -18,3 +18,7 @@
   大于 30min 的拆成两段,小于 30min 的直接进行插值
 
 - 6、在 social-stgcnn 中在 seq_len 个帧中很少有都出现 seq_len 帧的船,导致很多船都被抛弃了,基本是 15:1
+
+### 注:
+
+- 1、这里的输入结构综合考虑了 social-stgcnn 和 STAR 两个,以 STAR 为主为文件的结构，输入代码参考为 social-stgcnn
