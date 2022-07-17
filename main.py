@@ -1,3 +1,4 @@
+# 这个模块用于生成预处理后的数据并保存在文件夹中
 import os
 from util import *
 
@@ -17,13 +18,12 @@ if __name__ == '__main__':
             # 预处理——网格化、时间对齐、去重、出去较短的轨迹
             data = fomatReadFile(file)
             # print(data)
-            saveToFile('formatData',file, data)
+            saveToFile('formatData', file, data)
             # 插值处理
-            if data.shape[0] < 30:continue # 小于30*10s的路线删除 TODO 这个设置多少好
-            data = interpolate(data,10)
+            if data.shape[0] < 30: continue  # 小于30*10s的路线删除 TODO 这个设置多少好
+            data = interpolate(data, 10)
             if data.empty is False:
-                saveToFile('interpolation',file,data)
-                
+                saveToFile('interpolation', file, data)
             """
             # 这是测试找范围的
             x = data.loc[:, ('x')]
