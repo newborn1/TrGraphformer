@@ -1,4 +1,4 @@
-# 这个模块用于生成预处理后的数据并保存在文件夹中
+# 这个模块用于生成预处理后的数据并保存在文件夹中,同时可视化数据
 import os
 from util import *
 
@@ -38,10 +38,7 @@ if __name__ == '__main__':
                 print('x的范围', max(xMaxs), min(xMins))
                 print('y的范围', max(yMaxs), min(yMins), end='\n\n')
                 times += 1
-            
-
-            # 这是可视化部分
-            x = data.loc[:, ('x')]
-            y = data.loc[:, ('y')]
-            visulization(x, y)
             """
+
+    # 可视化部分
+    visulize('./interpolation', True)
