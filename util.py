@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import matplotlib
 import matplotlib.pyplot as plt
-from scipy.interpolate import splev, splrep
+# from scipy.interpolate import splev, splrep
 
 matplotlib.rcParams['font.family'] = 'Kaiti'
 
@@ -192,3 +192,12 @@ def visulize(basedir='./interpolation', show=True):  # 所需配置不足一个�
 
             plt.savefig('./image/{}'.format(int(data.loc[0, ('mmsi')])))
             if show: plt.show()
+
+
+def read_epoch(path):
+    data = pd.DataFrame(columns=['timestep', 'mmsi', 'x', 'y'])
+    for filename in os.listdir(path):
+        filename = os.path.join(path, filename)
+        data = pd.concat([data, pd.read_csv(filename)], axis=0)
+
+    return data
