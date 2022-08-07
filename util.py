@@ -198,6 +198,6 @@ def read_epoch(path):
     data = pd.DataFrame(columns=['timestep', 'mmsi', 'x', 'y'])
     for filename in os.listdir(path):
         filename = os.path.join(path, filename)
-        data = pd.concat([data, pd.read_csv(filename)], axis=0)
+        data = pd.concat([data, pd.read_csv(filename,usecols=['timestep', 'mmsi', 'x', 'y'])], axis=0)
 
     return data

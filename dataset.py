@@ -58,7 +58,7 @@ class TrajectoryDataset(Dataset):
                 # 保存轨迹
                 trajectories.append(trajectory)
 
-            self.data['trajectories'].append(trajectories)
+            self.data['trajectories'].append(trajectories) # 一个文件表示List的一个元素
 
             # 生成每一帧的行人信息——空间信息
             for _, frame_id in tqdm(enumerate(frames_id)):
@@ -111,12 +111,12 @@ class TrajectoryDataset(Dataset):
         """
         if self.config.split == 'test': skip = 6
         else: skip = 10
-        cur_frame, cur_set = self.data_index[:, index]
+        cur_frame_id, cur_set = self.data_index[:, index]
         # 开始帧的所有船的id
-        start_frame_ships = set(self.data['frame_ships'][cur_frame, :])
+        start_frame_ships = set(self.data['frame_ships'][cur_set].loc[cur_frame_id, :])
         # 结束帧的所有船的id
         end_frame_ships = set(
-            self.data['frame_ships'][cur_frame + self.config.seq_len * skip])
+            self.data['frame_ships'][cur_frame_id + self.config.seq_len * skip])
         present_ships = start_frame_ships | end_frame_ships  # 何必跟去重,当前区间出现过的所有船
         if len(start_frame_ships & end_frame_ships) == 0: return None  # 抛弃轨迹
         # 获取当前区间内每一艘船的轨迹片段
@@ -126,10 +126,10 @@ class TrajectoryDataset(Dataset):
             cur_traj = np.zeros((self.config.seq_len, 3))
             # 将区间映射到从0开始
             offset_end = self.config.seq_len * skip
-            cur_traj[:offset_end, :] = candidate_traj[cur_frame:cur_frame +
+            cur_traj[:offset_end, :] = candidate_traj[cur_frame_id:cur_frame_id +
                                                       offset_end, :]
             # 删去轨迹点较少的船的轨迹
-            if len(cur_frame[:, 0] > 0) < 5: continue
+            if len(cur_frame_id[:, 0] > 0) < 5: continue
             traject = traject.__add__(cur_traj)
 
         traject_batch = np.concatenate(traject, axis=1)
