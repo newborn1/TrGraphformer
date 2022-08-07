@@ -1,5 +1,7 @@
 # 准备数据,参考social-stgcnn和trAISformer
 import os
+
+import numpy as np
 from tqdm import tqdm
 from util import *
 from torch.utils.data import Dataset
@@ -32,7 +34,7 @@ class TrajectoryDataset(Dataset):
         # self.data 存储DataFrame对象,一个DataFrame对象表示一个小整体?
         self.data = {'frame_ships': [], 'trajectories': []}
         # self.sample_data存放一段一段序列开头的帧id信息
-        self.sample_data = np.array([[], []])
+        self.data_index = np.array([[], []])
         # 读取根目录下的所有文件作为测试集或者训练集(如一个eth文件夹为一个整体)
         for seti, path in enumerate(os.listdir(data_dir)):
             print('开始读取{}数据'.format(path))
@@ -77,12 +79,10 @@ class TrajectoryDataset(Dataset):
             frames_id = sorted(
                 [frame_ship.loc[0, 'timestep'] for frame_ship in frame_ships])
             # 这里减去seq_length是为了防止最后的序列没办法凑成一个完整的预测序列
-            maxframe = max(frame_ship) - self.seq_len
-            frames_id = [x for x in frame_id
-                         if not x > maxframe]  #提取出能构成完整序列的帧
-            set_id.extend(list(seti for _ in range(len(frame_ship))))
-            frame_id_in_set.extend(
-                list(frame_ship[i] for i in range(len(frame_ship))))
+            maxframe = max(frames_id) - self.seq_len
+            frames_id = [x for x in frames_id if not x > maxframe]  #提取出能构成完整序列的帧
+            set_id.extend([seti for _ in range(len(frames_id))])
+            frame_id_in_set.extend(frames_id)
 
             self.data_index = np.concatenate([
                 self.data_index,
