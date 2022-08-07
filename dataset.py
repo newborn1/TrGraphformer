@@ -34,7 +34,9 @@ class TrajectoryDataset(Dataset):
         # self.data 存储DataFrame对象,一个DataFrame对象表示一个小整体?
         self.data = {'frame_ships': [], 'trajectories': []}
         # self.sample_data存放一段一段序列开头的帧id信息
-        self.data_index = np.array([np.array([],dtype=int),np.array([],dtype=int)])
+        self.data_index = np.array(
+            [np.array([], dtype=int),
+             np.array([], dtype=int)])
         # 读取根目录下的所有文件作为测试集或者训练集(如一个eth文件夹为一个整体)
         for seti, path in enumerate(os.listdir(data_dir)):
             print('开始读取{}数据'.format(path))
@@ -58,7 +60,7 @@ class TrajectoryDataset(Dataset):
                 # 保存轨迹(trajectories[i]表示id号为i的船的轨迹信息)
                 trajectories[ship_id] = trajectory
 
-            self.data['trajectories'].append(trajectories) # 一个文件表示List的一个元素
+            self.data['trajectories'].append(trajectories)  # 一个文件表示List的一个元素
 
             # 生成每一帧的行人信息——空间信息
             for _, frame_id in tqdm(enumerate(frames_id)):
@@ -76,10 +78,11 @@ class TrajectoryDataset(Dataset):
             set_id = []  # 保存frame_id_in_set元素对应的集合的id(即文件对应的id)
             # 保存所有能构成训练序列的帧首(长度即为样本的长度)包含所有文件的——即为了生成start和end
             frame_id_in_set = []
-            frames_id = sorted(list(frame_ships.keys())) # 获取所有的帧号
+            frames_id = sorted(list(frame_ships.keys()))  # 获取所有的帧号
             # 这里减去seq_length是为了防止最后的序列没办法凑成一个完整的预测序列
             maxframe = max(frames_id) - self.seq_len
-            frames_id = [x for x in frames_id if not x > maxframe]  #提取出能构成完整序列的帧
+            frames_id = [x for x in frames_id
+                         if not x > maxframe]  #提取出能构成完整序列的帧
             set_id.extend([seti for _ in range(len(frames_id))])
             frame_id_in_set.extend(frames_id)
 
@@ -91,7 +94,7 @@ class TrajectoryDataset(Dataset):
                 ], 0)
             ], 1)
 
-        # 充分利用数据
+            # 充分利用数据
             if 'train' == 'train':
                 self.data_index = np.append(
                     self.data_index, self.data_index[:, :config.batch_size], 1)
@@ -108,38 +111,34 @@ class TrajectoryDataset(Dataset):
             mmsi: vessel's MMSI.
             time_start: timestamp of the starting time of the trajectory.
         """
-        if self.config.split == 'test': skip = 6
-        else: skip = 10
+        if self.config.split == 'test': skip = 1
+        else: skip = 1  # 这里的skip表示相邻两帧的跨越的单位
         cur_frame_id, cur_set = self.data_index[:, index]
         # 开始帧的所有船的id
-        start_frame_ships = set(self.data['frame_ships'][cur_set][cur_frame_id].loc[:, 'mmsi'])
+        start_frame_ships = set(
+            self.data['frame_ships'][cur_set][cur_frame_id].loc[:, 'mmsi'])
         # 结束帧的所有船的id
         end_frame_ships = set(
-            self.data['frame_ships'][cur_set][cur_frame_id + self.config.max_seqlen * skip].loc[:, 'mmsi'])
+            self.data['frame_ships'][cur_set][cur_frame_id +
+                                              self.config.max_seqlen *
+                                              skip].loc[:, 'mmsi'])
         present_ships = start_frame_ships | end_frame_ships  # 合并、去重,当前区间出现过的所有船
-        if len(start_frame_ships & end_frame_ships) == 0: return None  # 抛弃轨迹
+        if len(start_frame_ships & end_frame_ships) == 0:
+            return None  # TODO 抛弃轨迹?index不对应怎么办
         # 获取当前区间内每一艘船的轨迹片段
         traject = ()
         for ship in present_ships:
             candidate_traj = self.data['trajectories'][cur_set][ship]
             cur_traj = np.zeros((self.config.max_seqlen, 3))
-            start_n = np.where(candidate_traj.loc[:,'timestep']==cur_frame_id)
-            end_n = np.where(candidate_traj.loc[:,'timestep']==cur_frame_id+skip * self.config.max_seqlen)
-            if start_n[0].shape[0] == 0 and end_n[0].shape[0] != 0:
+            start_n = np.where(candidate_traj.loc[:,
+                                                  'timestep'] == cur_frame_id)
+            end_n = np.where(candidate_traj.loc[:,
+                                                'timestep'] == cur_frame_id +
+                             skip * self.config.max_seqlen)
+            # TODO 能不能精简为下面的条件
+            if start_n[0].shape[0] == 0 or end_n[0].shape[0] == 0:  # 有一个没有查到
                 start_n = 0
-                end_n = end_n[0][0]
-                if end_n == 0:
-                    traject.__add__(cur_traj)
-                    continue
-
-            elif end_n[0].shape[0] == 0 and start_n[0].shape[0] != 0:
-                start_n = start_n[0][0]
-                end_n = candidate_traj.shape[0]
-
-            elif end_n[0].shape[0] == 0 and start_n[0].shape[0] == 0:
-                start_n = 0
-                end_n = candidate_traj.shape[0]
-
+                end_n = 0
             else:
                 end_n = end_n[0][0]
                 start_n = start_n[0][0]
@@ -147,17 +146,21 @@ class TrajectoryDataset(Dataset):
             # 更新候选序列
             candidate_traj = candidate_traj[start_n:end_n, :]
             # 将区间映射到从0开始
-            offset_end = self.config.max_seqlen + int((candidate_traj[-1, 0] - endframe) // skip)
-            cur_traj[:offset_end, :] = candidate_traj
-            # 删去轨迹点较少的船的轨迹
-            if len(cur_frame_id[:, 0] > 0) < 5: continue
+            offset_end = len(candidate_traj)
+            cur_traj[:offset_end, :] = candidate_traj.loc[:, ('x', 'y')]
+            # TODO 要不要删去轨迹点较少的船的轨迹?——删了会不会导致船与船间的影响被忽略
+            if len(cur_traj[:, 0] > 0) < 5: continue
+            cur_traj = (cur_traj.reshape(-1, 1, 2), )  # 变成三维的信息
             traject = traject.__add__(cur_traj)
 
+        # 当前区间(index对应的data_index区间)内的所有船的信息(时间信息)
         traject_batch = np.concatenate(traject, axis=1)
         seq = self.__get_seq(index)
         mask = self.__get_mask(index)
         seqlen = self.__get_seqlen(index)
         mmsi = self.__get_mmsi(index)
+
+        return traject_batch
 
     def __len__(self):
         return self.data_index.shape[1]
