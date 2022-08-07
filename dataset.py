@@ -101,6 +101,9 @@ class TrajectoryDataset(Dataset):
 
             # TODO 还没划分val和train的数据集(打算在构造batch的时候再划分)
 
+    def __len__(self):
+        return self.data_index.shape[1]
+
     def __getitem__(self, index):
         """Gets items.
         
@@ -111,8 +114,8 @@ class TrajectoryDataset(Dataset):
             mmsi: vessel's MMSI.
             time_start: timestamp of the starting time of the trajectory.
         """
-        if self.config.split == 'test': skip = 1
-        else: skip = 1  # 这里的skip表示相邻两帧的跨越的单位
+        if self.config.split == 'test': skip = 10
+        else: skip = 10  # 这里的skip表示相邻两帧的跨越的单位
         cur_frame_id, cur_set = self.data_index[:, index]
         # 开始帧的所有船的id
         start_frame_ships = set(
@@ -123,47 +126,59 @@ class TrajectoryDataset(Dataset):
                                               self.config.max_seqlen *
                                               skip].loc[:, 'mmsi'])
         present_ships = start_frame_ships | end_frame_ships  # 合并、去重,当前区间出现过的所有船
-        if len(start_frame_ships & end_frame_ships) == 0:
-            return None  # TODO 抛弃轨迹?index不对应怎么办
+        # if len(start_frame_ships & end_frame_ships) == 0:
+        #     return None  # TODO 抛弃轨迹?index不对应怎么办
         # 获取当前区间内每一艘船的轨迹片段
         traject = ()
         for ship in present_ships:
             candidate_traj = self.data['trajectories'][cur_set][ship]
-            cur_traj = np.zeros((self.config.max_seqlen, 3))
+            # cur_traj存放当前ship的当前区间内的所有轨迹——TODO 为什么会断开?
+            cur_traj = np.zeros((self.config.max_seqlen, 2))
+            end_frame_id = cur_frame_id + self.config.max_seqlen*skip
             start_n = np.where(candidate_traj.loc[:,
                                                   'timestep'] == cur_frame_id)
             end_n = np.where(candidate_traj.loc[:,
-                                                'timestep'] == cur_frame_id +
-                             skip * self.config.max_seqlen)
-            # TODO 能不能精简为下面的条件
-            if start_n[0].shape[0] == 0 or end_n[0].shape[0] == 0:  # 有一个没有查到
+                                                'timestep'] == end_frame_id)
+            # TODO 能不能精简下面的条件
+            if start_n[0].shape[0] == 0 and end_n[0].shape[0] != 0:
                 start_n = 0
-                end_n = 0
+                end_n = end_n[0][0]
+                if end_n == 0: # TODO 能注释吗?
+                    # traject.__add__(cur_traj)
+                    continue
+
+            elif end_n[0].shape[0] == 0 and start_n[0].shape[0] != 0:
+                start_n = start_n[0][0]
+                end_n = candidate_traj.shape[0]
+
+            elif end_n[0].shape[0] == 0 and start_n[0].shape[0] == 0:
+                start_n = 0
+                end_n = candidate_traj.shape[0]
+
             else:
                 end_n = end_n[0][0]
                 start_n = start_n[0][0]
 
             # 更新候选序列
-            candidate_traj = candidate_traj[start_n:end_n, :]
-            # 将区间映射到从0开始
-            offset_end = len(candidate_traj)
-            cur_traj[:offset_end, :] = candidate_traj.loc[:, ('x', 'y')]
+            candidate_traj = candidate_traj.iloc[start_n:end_n, :].reset_index(drop=True) # 用iloc才能获取空的数据,并且需要重编号!!!
+            # 将区间映射到从0-max_seqlen 上, 不是从0开始!这里转为Int是为了索引需要
+            offset_start = int(candidate_traj.loc[0,'timestep']-cur_frame_id)//skip
+            offset_end = self.config.max_seqlen + int(candidate_traj.iloc[-1,0]-end_frame_id)//skip
+            cur_traj[offset_start:offset_end + 1, :] = candidate_traj[['x', 'y']]
             # TODO 要不要删去轨迹点较少的船的轨迹?——删了会不会导致船与船间的影响被忽略
-            if len(cur_traj[:, 0] > 0) < 5: continue
+            if sum(cur_traj[:, 0] > 0) < 5: continue
             cur_traj = (cur_traj.reshape(-1, 1, 2), )  # 变成三维的信息
             traject = traject.__add__(cur_traj)
 
-        # 当前区间(index对应的data_index区间)内的所有船的信息(时间信息)
+        # 当前区间(index对应的data_index区间)内的所有船的信息(时间信息?),合并后同一个时间会合在一起,观看合并的维度变化即可
         traject_batch = np.concatenate(traject, axis=1)
-        seq = self.__get_seq(index)
-        mask = self.__get_mask(index)
-        seqlen = self.__get_seqlen(index)
-        mmsi = self.__get_mmsi(index)
+        # seq = self.__get_seq(index)
+        # mask = self.__get_mask(index)
+        # seqlen = self.__get_seqlen(index)
+        # mmsi = self.__get_mmsi(index)
 
         return traject_batch
 
-    def __len__(self):
-        return self.data_index.shape[1]
 
     def __get_seq(self, index):
         pass
@@ -171,8 +186,8 @@ class TrajectoryDataset(Dataset):
     def __get_mask(self, index):
         pass
 
-    def __get_seqlen(index):
+    def __get_seqlen(self,index):
         pass
 
-    def __get_mmsi(index):
+    def __get_mmsi(self,index):
         pass

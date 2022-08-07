@@ -24,6 +24,7 @@
 - 1、这里的输入结构综合考虑了 social-stgcnn 和 STAR 两个,以 STAR 为主为文件的结构，输入代码参考为 social-stgcnn
 - 2、STAR 中的 massup_batch 在 getitem 中没有写,并且判断条件做了精简,而且没有处理船过多和船过少的问题(STAR 中的 TODO 重要部分)。
 - 3、seq_len 和 max_seqlen 还没有对应过来
+- 4、这里没有对STAR中的ifexistobs进行处理
 
 ### key-work:
 

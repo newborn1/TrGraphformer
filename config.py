@@ -16,7 +16,7 @@ class Config:
     num_works = 0  # 给DataLoader配置的
     batch_size = 32
     max_epoch = 256  # 训练的批次
-    max_seqlen = 8
+    max_seqlen = 20
     n_layer = 5
     embedding_size = [32]
     output_size = 2
