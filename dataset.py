@@ -8,7 +8,7 @@ from torch.utils.data import Dataset
 class TrajectoryDataset(Dataset):
     """customized pytorch dataset"""
 
-    def __init__(self, data_dir, seq_len, max_seqlen=96) -> None:
+    def __init__(self, data_dir, seq_len, config) -> None:
         super(TrajectoryDataset).__init__()
         # TODO 不知道有没有问题!
         r"""
@@ -26,7 +26,8 @@ class TrajectoryDataset(Dataset):
             time_start: timestamp of the starting time of the trajectory.
         """
         self.data_dir = data_dir
-        self.max_seqlen = max_seqlen
+        self.config = config
+        self.max_seqlen = config.max_seqlen
         self.seq_len = seq_len
         # self.data 存储DataFrame对象,一个DataFrame对象表示一个小整体?
         self.data = {'frame_ships': [], 'trajectories': []}
@@ -91,6 +92,13 @@ class TrajectoryDataset(Dataset):
                 ], 0)
             ], 1)
 
+            # 充分利用数据
+            if 'train' == 'train':
+                self.data_index = np.append(
+                    self.data_index, self.data_index[:, :config.batch_size], 1)
+
+            # TODO 还没划分val和train的数据集(打算在构造batch的时候再划分)
+
     def __getitem__(self, index):
         """Gets items.
         
@@ -101,10 +109,37 @@ class TrajectoryDataset(Dataset):
             mmsi: vessel's MMSI.
             time_start: timestamp of the starting time of the trajectory.
         """
+        if self.config.split == 'test': skip = 6
+        else: skip = 10
+        cur_frame, cur_set = self.data_index[:, index]
+        # 开始帧的所有船的id
+        start_frame_ships = set(self.data['frame_ships'][cur_frame, :])
+        # 结束帧的所有船的id
+        end_frame_ships = set(
+            self.data['frame_ships'][cur_frame + self.config.seq_len * skip])
+        present_ships = start_frame_ships | end_frame_ships  # 何必跟去重,当前区间出现过的所有船
+        if len(start_frame_ships & end_frame_ships) == 0: return None  # 抛弃轨迹
+        # 获取当前区间内每一艘船的轨迹片段
+        traject = ()
+        for ship in present_ships:
+            candidate_traj = self.data['trajectory'].loc[:, ship]
+            cur_traj = np.zeros((self.config.seq_len, 3))
+            # 将区间映射到从0开始
+            offset_end = self.config.seq_len * skip
+            cur_traj[:offset_end, :] = candidate_traj[cur_frame:cur_frame +
+                                                      offset_end, :]
+            # 删去轨迹点较少的船的轨迹
+            if len(cur_frame[:, 0] > 0) < 5: continue
+            traject = traject.__add__(cur_traj)
+
+        traject_batch = np.concatenate(traject, axis=1)
         seq = self.__get_seq(index)
         mask = self.__get_mask(index)
         seqlen = self.__get_seqlen(index)
         mmsi = self.__get_mmsi(index)
+
+    def __len__(self):
+        return self.data_index.shape[1]
 
     def __get_seq(self, index):
         pass
