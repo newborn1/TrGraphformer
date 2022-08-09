@@ -119,6 +119,8 @@ class TrajectoryDataset(Dataset):
         if self.config.split == 'test': skip = 10
         else: skip = 10  # 这里的skip表示相邻两帧的跨越的单位
         cur_frame_id, cur_set = self.data_index[:, index]
+        # 保存每个小的单元对应的船数量,因为这里只有一个单元,所以也就是当前index对应的船数量
+        num_ships = []
         # TODO 这里出现中间的船怎么办
         # 开始帧的所有船的id
         start_frame_ships = set(
@@ -162,7 +164,7 @@ class TrajectoryDataset(Dataset):
         traject_batch = np.concatenate(traject, axis=1)
         seq_list, nei_list, nei_num = self.__get_social_inputs_numpy(
             traject_batch)
-        num_ships = traject_batch.shape[1]
+        num_ships.append(traject_batch.shape[1])
 
         return traject_batch, seq_list, nei_list, nei_num, num_ships
 
@@ -187,7 +189,7 @@ class TrajectoryDataset(Dataset):
         # 这里用range是为了选第二维的数据,遍历每一艘船
         for ship_i in range(num_ships):
             seq = nodes[:, ship_i]
-            seq_list[seq[:, 0] != 0, ship_i] = 1  # 1表示在f帧中存在改船
+            seq_list[seq[:, 0] != 0, ship_i] = 1  # 1表示在f帧中存在该船
 
         # 获取相对坐标和相邻节点的id列表
         nei_list = np.zeros((nodes.shape[0], num_ships, num_ships))
@@ -197,14 +199,14 @@ class TrajectoryDataset(Dataset):
         for ship_i in range(num_ships):
             nei_list[:, ship_i, :] = seq_list
             nei_list[:, ship_i, ship_i] = 0  # TODO 自己不是自己的邻居?
-            nei_num[:ship_i] = np.sum(nei_list[:, ship_i, :], 1)
+            nei_num[:, ship_i] = np.sum(nei_list[:, ship_i, :], 1)
             seq_i = nodes[:, ship_i]
             for ship_j in range(num_ships):
+                if ship_j == ship_i:continue # TODO 避免不必要的计算?
                 # 根据距离来删去船之间的联系
                 seq_j = nodes[:, ship_j]  # 第j搜船的每一帧的空间信息
                 # 选取第i艘船和第j艘船同时出现的帧号
-                select_frame_idx = (seq_list[:, ship_i] >
-                                    0) & (seq_list[:, ship_j] > 0)
+                select_frame_idx = (seq_list[:, ship_i] == 1) & (seq_list[:, ship_j] == 1)
                 # 将预选出来的i和j同时出现的帧号的距离进行计算,剔除距离较远的船之间的联系
                 relative_cord = seq_i[select_frame_idx, :] - seq_j[
                     select_frame_idx, :]
