@@ -10,6 +10,8 @@ class Config:
 
     # 准备数据(生成TrajectoryDataset)
     max_seqlen = 128  # 这个还需要调整
+    neighbor_x_thred = 10  # 相邻最短距离,TODO 调整
+    neighbor_y_thred = 10
 
     # 训练
     split = 'retrain'  # (有retrain和test)
