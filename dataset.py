@@ -137,37 +137,19 @@ class TrajectoryDataset(Dataset):
             # cur_traj存放当前ship的当前区间内的所有轨迹——TODO 为什么会断开?
             cur_traj = np.zeros((self.config.max_seqlen, 2))
             end_frame_id = cur_frame_id + self.config.max_seqlen * skip
-            start_n = np.where(candidate_traj.loc[:,
-                                                  'timestep'] == cur_frame_id)
-            end_n = np.where(candidate_traj.loc[:, 'timestep'] == end_frame_id)
-            # TODO 能不能精简下面的条件
-            if start_n[0].shape[0] == 0 and end_n[0].shape[0] != 0:
-                start_n = 0
-                end_n = end_n[0][0]
-                if end_n == 0:  # TODO 能注释吗?
-                    # traject.__add__(cur_traj)
-                    continue
-
-            elif end_n[0].shape[0] == 0 and start_n[0].shape[0] != 0:
-                start_n = start_n[0][0]
-                end_n = candidate_traj.shape[0]
-
-            elif end_n[0].shape[0] == 0 and start_n[0].shape[0] == 0:
-                start_n = 0
-                end_n = candidate_traj.shape[0]
-
-            else:
-                end_n = end_n[0][0]
-                start_n = start_n[0][0]
-
-            # 更新候选序列
-            candidate_traj = candidate_traj.iloc[start_n:end_n, :].reset_index(
-                drop=True)  # 用iloc才能获取空的数据,并且需要重编号!!!
+            # TODO 能不能精简为下面的代码
+            # 更新候选序列,需要重新编号,不包括结束帧?(模仿STAR代码)刚好20帧
+            candidate_traj = candidate_traj[np.logical_and(
+                candidate_traj.loc[:, 'timestep'] >= cur_frame_id,
+                candidate_traj.loc[:, 'timestep'] < end_frame_id)].reset_index(
+                    drop=True)
+            # TODO 连续性判断!应该不会不连续?因为半小时才会间隔，而这不可能超过半小时,所以不需要连续性判断
             # 将区间映射到从0-max_seqlen 上, 不是从0开始!这里转为Int是为了索引需要
             offset_start = int(candidate_traj.loc[0, 'timestep'] -
                                cur_frame_id) // skip
             offset_end = self.config.max_seqlen + int(
                 candidate_traj.iloc[-1, 0] - end_frame_id) // skip
+            assert offset_end + 1 - offset_start == candidate_traj.shape[0]
             cur_traj[offset_start:offset_end +
                      1, :] = candidate_traj[['x', 'y']]
             # TODO 要不要删去轨迹点较少的船的轨迹?——删了会不会导致船与船间的影响被忽略
