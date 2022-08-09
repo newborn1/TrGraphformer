@@ -29,6 +29,7 @@
 - 3、seq_len 和 max_seqlen 还没有对应过来
 - 4、这里没有对 STAR 中的 ifexistobs 进行处理
 - 5、skip 为 10(表示一秒间隔一帧),同时这里 max_seqlen 取 20,即 20 帧(20s)
+- 6、没有处理船过多和过少的操作
 
 ### key-work:
 
