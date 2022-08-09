@@ -119,17 +119,18 @@ class TrajectoryDataset(Dataset):
         if self.config.split == 'test': skip = 10
         else: skip = 10  # 这里的skip表示相邻两帧的跨越的单位
         cur_frame_id, cur_set = self.data_index[:, index]
+        # TODO 这里出现中间的船怎么办
         # 开始帧的所有船的id
         start_frame_ships = set(
             self.data['frame_ships'][cur_set][cur_frame_id].loc[:, 'mmsi'])
         # 结束帧的所有船的id
         end_frame_ships = set(
             self.data['frame_ships'][cur_set][cur_frame_id +
-                                              self.config.max_seqlen *
+                                              (self.config.max_seqlen-1) *
                                               skip].loc[:, 'mmsi'])
         present_ships = start_frame_ships | end_frame_ships  # 合并、去重,当前区间出现过的所有船
         # if len(start_frame_ships & end_frame_ships) == 0:
-        #     return None  # TODO 抛弃轨迹?index不对应怎么办
+        #     return None  # TODO 也包含在后边了?
         # 获取当前区间内每一艘船的轨迹片段
         traject = ()
         for ship in present_ships:
