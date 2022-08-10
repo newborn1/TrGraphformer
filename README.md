@@ -28,7 +28,7 @@
 - 2、STAR 中的 massup_batch 在 getitem 中没有写,并且判断条件做了精简,而且没有处理船过多和船过少的问题(STAR 中的 TODO 重要部分)。
 - 3、seq_len 和 max_seqlen 还没有对应过来
 - 4、这里没有对 STAR 中的 ifexistobs 进行处理
-- 5、skip 为 10(表示一秒间隔一帧),同时这里 max_seqlen 取 20,即 20 帧(20s)
+- 5、skip 为 10(表示一秒间隔一帧),同时这里 max_seqlen 取 20,即 20 帧(200s)
 - 6、没有处理船过多和过少的操作
 - 7、迭代的最后边界条件还没判断
 
