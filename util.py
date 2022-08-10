@@ -1,6 +1,8 @@
 # 存放各种工具函数
 import os
 import time
+import random
+import torch
 import numpy as np
 import pandas as pd
 import matplotlib
@@ -198,6 +200,61 @@ def read_epoch(path):
     data = pd.DataFrame(columns=['timestep', 'mmsi', 'x', 'y'])
     for filename in os.listdir(path):
         filename = os.path.join(path, filename)
-        data = pd.concat([data, pd.read_csv(filename,usecols=['timestep', 'mmsi', 'x', 'y'])], axis=0)
+        data = pd.concat([
+            data,
+            pd.read_csv(filename, usecols=['timestep', 'mmsi', 'x', 'y'])
+        ],
+                         axis=0)
 
     return data
+
+
+def get_loss_mask(self, outputs, node_first, seq_list):
+    '''
+    Get a mask to denote whether both of current and previous data exsist.
+    Note: It is not supposed to calculate loss for a person at time t if his data at t-1 does not exsist.
+    '''
+    if outputs.dim() == 3:
+        seq_length = outputs.shape[0]
+    else:
+        seq_length = outputs.shape[1]
+
+    node_pre = node_first
+    lossmask = torch.zeros(seq_length, seq_list.shape[1])
+
+    lossmask = lossmask.cuda()
+
+    # For loss mask, only generate for those exist through the whole window
+    for framenum in range(seq_length):
+        if framenum == 0:
+            lossmask[framenum] = seq_list[framenum] * node_pre
+        else:
+            lossmask[framenum] = seq_list[framenum] * lossmask[framenum - 1]
+
+    return lossmask, sum(sum(lossmask))
+
+
+def rotate_shift_batch(batch_data, config, ifrotate=True):
+    '''
+    TODO 不懂,加入噪音增加泛化性?
+    Random ration and zero shifting.
+    '''
+    batch, seq_list, nei_list, nei_num, batch_pednum = batch_data
+
+    # rotate batch
+    if ifrotate:
+        th = random.random() * np.pi
+        cur_ori = batch.copy()
+        batch[:, :,
+              0] = cur_ori[:, :, 0] * np.cos(th) - cur_ori[:, :,
+                                                           1] * np.sin(th)
+        batch[:, :,
+              1] = cur_ori[:, :, 0] * np.sin(th) + cur_ori[:, :,
+                                                           1] * np.cos(th)
+    # get shift value
+    s = batch[config.obs_len - 1]
+
+    shift_value = np.repeat(s.reshape((1, -1, 2)), config.max_seqlen, 0)
+
+    batch_data = batch, batch - shift_value, shift_value, seq_list, nei_list, nei_num, batch_pednum
+    return batch_data
