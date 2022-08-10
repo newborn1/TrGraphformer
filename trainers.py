@@ -109,7 +109,8 @@ class Trainer:
         print('开始训练')
         # 采用交叉验证
         val_error, val_final_error = 0, 0
-        for epoch in range(self.config.max_epoch):
+        pbar = tqdm(total_len=self.config.max_epoch)
+        for epoch in pbar:
             train_loss = self.__train_epoch(self.config.split, epoch)
 
             if epoch % self.config.start_val == 0:
@@ -120,12 +121,12 @@ class Trainer:
                 self.best_fde = val_final_error if val_final_error < self.best_fde else self.best_fde
                 self.__save_model(epoch)
 
-                print(
+                pbar.set_description(
                     '----epoch {}, train_loss={:.5f}, ADE={:.3f}, FDE={:.3f}, Best_ADE={:.3f}, Best_FDE={:.3f} at Epoch {}'
                     .format(epoch, train_loss, val_error, val_final_error,
                             self.best_ade, self.best_fde, self.best_epoch))
             else:
-                print('----epoch {}, train_loss={:.5f}'.format(
+                pbar.set_description('----epoch {}, train_loss={:.5f}'.format(
                     epoch, train_loss))
 
             self.writer.add_scalars(
