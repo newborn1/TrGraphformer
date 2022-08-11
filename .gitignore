@@ -2,5 +2,6 @@ __pycache__/
 .idea/
 formatData/
 image/
-data/eth/
+data/
 lssddata/
+output/

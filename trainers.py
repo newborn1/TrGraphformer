@@ -23,8 +23,6 @@ class Trainer:
                                  num_workers=self.config.num_workers)
         self.__set_optimizer()
         self.writer = SummaryWriter(config.logdir)
-        self.writer.add_text('config', str(config))
-        self.writer.add_hparams(config)  #不知道行不行
 
     def __set_optimizer(self):
         self.optimizer = torch.optim.Adam(self.model.parameters(),
@@ -45,10 +43,11 @@ class Trainer:
         # 一个batch
         for idx, batch in pbar:
             start = time.time()
-            inputs = rotate_shift_batch(inputs, self.config,
-                                        self.config.random_ratate)
-            inputs = tuple([torch.Tensor(i) for i in batch])
-            inputs = tuple([i.cuda() for i in inputs])
+            # TODO 目前只支持一个batch
+            batch = [batch[i][0] for i in range(len(batch))]
+            inputs = rotate_shift_batch(batch, self.config,
+                                        self.config.random_rotate)
+            inputs = tuple([i.float().cuda() for i in inputs])
 
             loss = torch.zeros(1).cuda()
             batch_abs, batch_norm, shift_value, seq_list, nei_list, nei_num, ship_num = inputs
@@ -109,9 +108,9 @@ class Trainer:
         print('开始训练')
         # 采用交叉验证
         val_error, val_final_error = 0, 0
-        pbar = tqdm(total_len=self.config.max_epoch)
+        pbar = tqdm(range(self.config.max_seqlen))
         for epoch in pbar:
-            train_loss = self.__train_epoch(self.config.split, epoch)
+            train_loss = self.__train_epoch(epoch)
 
             if epoch % self.config.start_val == 0:
                 val_error, val_final_error = self.__test_epoch(epoch)
@@ -120,6 +119,16 @@ class Trainer:
                 self.best_epoch = epoch if val_final_error < self.best_fde else self.best_epoch
                 self.best_fde = val_final_error if val_final_error < self.best_fde else self.best_fde
                 self.__save_model(epoch)
+
+                self.writer.add_hparams(
+                    {
+                        'batchsize': self.config.batch_size,
+                        'lr': self.config.learning_rate,
+                        'epoch': epoch
+                    }, {
+                        'accuracy': val_error,
+                        'loss': train_loss
+                    })
 
                 pbar.set_description(
                     '----epoch {}, train_loss={:.5f}, ADE={:.3f}, FDE={:.3f}, Best_ADE={:.3f}, Best_FDE={:.3f} at Epoch {}'

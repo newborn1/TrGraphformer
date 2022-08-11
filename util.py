@@ -209,7 +209,7 @@ def read_epoch(path):
     return data
 
 
-def get_loss_mask(self, outputs, node_first, seq_list):
+def get_loss_mask(outputs, node_first, seq_list):
     '''
     Get a mask to denote whether both of current and previous data exsist.
     Note: It is not supposed to calculate loss for a person at time t if his data at t-1 does not exsist.
@@ -244,7 +244,7 @@ def rotate_shift_batch(batch_data, config, ifrotate=True):
     # rotate batch TODO 增强数据多样性
     if ifrotate:  # 随机逆时针旋转th度角,所有的船都旋转一样的角度
         th = random.random() * np.pi
-        cur_ori = batch.copy()
+        cur_ori = batch.clone()
         batch[:, :,
               0] = cur_ori[:, :, 0] * np.cos(th) - cur_ori[:, :,
                                                            1] * np.sin(th)

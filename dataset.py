@@ -128,7 +128,7 @@ class TrajectoryDataset(Dataset):
         # 结束帧的所有船的id
         end_frame_ships = set(
             self.data['frame_ships'][cur_set][cur_frame_id +
-                                              (self.config.max_seqlen-1) *
+                                              (self.config.max_seqlen - 1) *
                                               skip].loc[:, 'mmsi'])
         present_ships = start_frame_ships | end_frame_ships  # 合并、去重,当前区间出现过的所有船
         # if len(start_frame_ships & end_frame_ships) == 0:
@@ -202,17 +202,18 @@ class TrajectoryDataset(Dataset):
             nei_num[:, ship_i] = np.sum(nei_list[:, ship_i, :], 1)
             seq_i = nodes[:, ship_i]
             for ship_j in range(num_ships):
-                if ship_j == ship_i:continue # TODO 避免不必要的计算?
+                if ship_j == ship_i: continue  # TODO 避免不必要的计算?
                 # 根据距离来删去船之间的联系
                 seq_j = nodes[:, ship_j]  # 第j搜船的每一帧的空间信息
                 # 选取第i艘船和第j艘船同时出现的帧号
-                select_frame_idx = (seq_list[:, ship_i] == 1) & (seq_list[:, ship_j] == 1)
+                select_frame_idx = (seq_list[:, ship_i]
+                                    == 1) & (seq_list[:, ship_j] == 1)
                 # 将预选出来的i和j同时出现的帧号的距离进行计算,剔除距离较远的船之间的联系
                 relative_cord = seq_i[select_frame_idx, :] - seq_j[
                     select_frame_idx, :]
                 select_distance = (
                     abs(relative_cord[:, 0]) > self.config.neighbor_x_thred
-                    | abs(relative_cord[:, 1] > self.config.neighbor_y_thred))
+                ) | (abs(relative_cord[:, 1]) > self.config.neighbor_y_thred)
                 # 删去与第i艘船距离较大的船之间的边——改变邻接矩阵和邻接节点的数量
                 nei_num[select_frame_idx, ship_i] -= select_distance
                 select_frame_idx[select_frame_idx == True] = select_distance

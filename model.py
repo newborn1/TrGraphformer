@@ -15,7 +15,7 @@ class CausalSelfAttention(nn.Module):
     """
 
     def __init__(self, config) -> None:
-        super().__init__()
+        super(CausalSelfAttention, self).__init__()
         self.n_embd = 5
         self.n_head = 1
         self.attn_pdrop = 0.5
@@ -69,18 +69,18 @@ class Block(nn.Module):
         x:a Tensor of size as input——x
     """
 
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, config) -> None:
+        super(Block, self).__init__()
         self.n_embd = 5  # 输入数据的维度
         self.resid_pdrop = 0.8  # 防止过拟合
         self.ln1 = nn.LayerNorm(self.n_embd)
         self.ln2 = nn.LayerNorm(self.n_embd)
         # 这个才是整个Block的重点,进行Attention的计算
-        self.attn = CausalSelfAttention()
+        self.attn = CausalSelfAttention(config)
         # 处理提取优化输入数据
         self.mlp = nn.Sequential(
             nn.Linear(self.n_embd, 4 * self.n_embd),
-            nn.ReLu(inplace=True),
+            nn.ReLU(inplace=True),
             nn.Linear(4 * self.n_embd, self.n_embd),
             nn.Dropout(self.resid_pdrop),
         )
@@ -105,7 +105,8 @@ class TrGraphformerEncoderLayer(nn.Module):
         self.embd_pdrop = 0.8
         self.n_layer = config.n_layer
         self.drop = nn.Dropout(self.embd_pdrop)
-        self.blocks = nn.Sequential(*[Block() for _ in range(self.n_layer)])
+        self.blocks = nn.Sequential(
+            *[Block(config) for _ in range(self.n_layer)])
 
         # decoder head——未实现decoder
         self.ln_f = nn.LayerNorm(self.n_embd)
@@ -175,8 +176,11 @@ class TrGraphformerModel(nn.Module):
     def __init__(self, config) -> None:
         super(TrGraphformerModel, self).__init__()
         # self.src_mask = config.src_mask
-        # encoder_layers = TrGraphformerEncoderLayer(config)
+        self.encoder_layers = TrGraphformerEncoderLayer(config)
         # self.transformer_encoder = TrGraphformerEncoder(config)
+
+    def forward(self, inputs, iftest=False):
+        return inputs[0]
 
 
 class STAR(torch.nn.Module):
