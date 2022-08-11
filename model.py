@@ -174,9 +174,9 @@ class TrGraphformerModel(nn.Module):
 
     def __init__(self, config) -> None:
         super(TrGraphformerModel, self).__init__()
-        self.src_mask = config.src_mask
-        encoder_layers = TrGraphformerEncoderLayer(config)
-        self.transformer_encoder = TrGraphformerEncoder(config)
+        # self.src_mask = config.src_mask
+        # encoder_layers = TrGraphformerEncoderLayer(config)
+        # self.transformer_encoder = TrGraphformerEncoder(config)
 
 
 class STAR(torch.nn.Module):

@@ -14,7 +14,7 @@ class Trainer:
     """输入训练或者测试的数据集和模型进行训练和预测"""
 
     def __init__(self, trajectoryDataset, model, config) -> None:
-        self.model = model.device('gpu')
+        self.model = model.cuda()
         self.config = config
         self.loader = DataLoader(trajectoryDataset,
                                  shuffle=True,

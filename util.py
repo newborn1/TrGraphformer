@@ -241,8 +241,8 @@ def rotate_shift_batch(batch_data, config, ifrotate=True):
     '''
     batch, seq_list, nei_list, nei_num, batch_pednum = batch_data
 
-    # rotate batch
-    if ifrotate:
+    # rotate batch TODO 增强数据多样性
+    if ifrotate:  # 随机逆时针旋转th度角,所有的船都旋转一样的角度
         th = random.random() * np.pi
         cur_ori = batch.copy()
         batch[:, :,
@@ -251,7 +251,7 @@ def rotate_shift_batch(batch_data, config, ifrotate=True):
         batch[:, :,
               1] = cur_ori[:, :, 0] * np.sin(th) + cur_ori[:, :,
                                                            1] * np.cos(th)
-    # get shift value
+    # get shift value TODO 为什么以这个为平移基准(第obs_len帧全变为0)?类似中心化?
     s = batch[config.obs_len - 1]
 
     shift_value = np.repeat(s.reshape((1, -1, 2)), config.max_seqlen, 0)
