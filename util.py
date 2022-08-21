@@ -258,3 +258,13 @@ def rotate_shift_batch(batch_data, config, ifrotate=True):
 
     batch_data = batch, batch - shift_value, shift_value, seq_list, nei_list, nei_num, batch_pednum
     return batch_data
+
+
+def get_noise(shape, noise_type):
+    # torch.randn生成标准正态分布的随机数
+    if noise_type == "gaussian":
+        return torch.randn(shape).cuda()
+    elif noise_type == "uniform":
+        return torch.rand(
+            *shape).sub_(0.5).mul_(2.0).cuda()  # 最后带'_'的都是inplace操作
+    raise ValueError('Unrecognized noise type "%s"' % noise_type)
