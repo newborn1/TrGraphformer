@@ -261,7 +261,7 @@ def rotate_shift_batch(batch_data, config, ifrotate=True):
 
 
 def get_noise(shape, noise_type):
-    # torch.randn生成标准正态分布的随机数
+    r'torch.randn生成shape大小的标准正态分布的随机数'
     if noise_type == "gaussian":
         return torch.randn(shape).cuda()
     elif noise_type == "uniform":

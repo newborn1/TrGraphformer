@@ -32,6 +32,7 @@ class Config:
     pred_len = 12
     max_seqlen = obs_len + pred_len
     n_layer = 5
+    # 模型
     embedding_size = [32]
     output_size = 2
     dropout_prob = 0.5
