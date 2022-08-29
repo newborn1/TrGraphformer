@@ -94,7 +94,7 @@ class TrajectoryDataset(Dataset):
                 ], 0)
             ], 1)
 
-            # 充分利用数据
+            # TODO 充分利用数据
             if 'train' == 'train':
                 self.data_index = np.append(
                     self.data_index, self.data_index[:, :config.batch_size], 1)
@@ -130,6 +130,7 @@ class TrajectoryDataset(Dataset):
             self.data['frame_ships'][cur_set][cur_frame_id +
                                               (self.config.max_seqlen - 1) *
                                               skip].loc[:, 'mmsi'])
+        print(cur_frame_id)
         present_ships = start_frame_ships | end_frame_ships  # 合并、去重,当前区间出现过的所有船
         # if len(start_frame_ships & end_frame_ships) == 0:
         #     return None  # TODO 也包含在后边了?

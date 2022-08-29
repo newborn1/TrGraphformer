@@ -74,11 +74,10 @@ class Trainer:
             self.optimizer.step()
 
             end = time.time()
-            if batch % 10 == 0:
+            if idx % 10 == 0:
                 pbar.set_description(
-                    'train-{}/{} (epoch {} - batch_idx {}), train_loss = {:.5f}, time/batch = {:.5f} '
-                    .format(batch, len(self.loader), epoch, idx, loss.item(),
-                            end - start))
+                    'train-(epoch {} - batch_idx {}), train_loss = {:.5f}, time/batch = {:.5f} '
+                    .format(epoch, idx, loss.item(), end - start))
 
         train_loss_epoch = loss_epoch / len(self.loader)
 
