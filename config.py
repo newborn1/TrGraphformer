@@ -21,12 +21,13 @@ class Config:
     train_model = 'trGraphformer'
     clip = 1  # 用在trainers中的__train_epoch
     # 训练
+    shuffle = True
     random_rotate = True
     split = 'retrain'  # (有retrain和test)
     num_workers = 0  # 给DataLoader配置的
     batch_size = 1  # 32
     max_epoch = 64 + 1  # 训练的批次
-    start_val = 8  # 8个epoch开始评估、保存一次
+    start_val = 2  # 8个epoch开始评估、保存一次
     learning_rate = 0.0015
     obs_len = 8
     pred_len = 12

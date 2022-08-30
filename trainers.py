@@ -49,7 +49,6 @@ class Trainer:
                                         self.config.random_rotate)
             inputs = tuple([i.float().cuda() for i in inputs])
 
-            loss = torch.zeros(1).cuda()
             batch_abs, batch_norm, shift_value, seq_list, nei_list, nei_num, ship_num = inputs
             # 去掉最后一列,因为数据没有shift做减
             inputs_forward = (batch_abs[:-1], batch_norm[:-1],
@@ -64,7 +63,7 @@ class Trainer:
             loss_o = torch.sum(self.criterion(outputs, batch_norm[1:, :, :2]),
                                dim=2)
 
-            loss += (torch.sum(loss_o * lossmask / num))
+            loss = (torch.sum(loss_o * lossmask / num))
             loss_epoch += loss.item()
 
             loss.backward()
@@ -74,7 +73,7 @@ class Trainer:
             self.optimizer.step()
 
             end = time.time()
-            if idx % 10 == 0:
+            if idx % 1 == 0:
                 pbar.set_description(
                     'train-(epoch {} - batch_idx {}), train_loss = {:.5f}, time/batch = {:.5f} '
                     .format(epoch, idx, loss.item(), end - start))
@@ -82,6 +81,12 @@ class Trainer:
         train_loss_epoch = loss_epoch / len(self.loader)
 
         return train_loss_epoch
+
+    def test(self):
+        print('开始测试')
+        self.model.eval()
+        test_error, test_final_error = self.__test_epoch()
+        print(f'test_error: {test_error} test_final_error: {test_final_error}')
 
     @torch.no_grad()
     def __test_epoch(self, epoch=0):

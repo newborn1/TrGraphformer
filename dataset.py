@@ -33,7 +33,7 @@ class TrajectoryDataset(Dataset):
         self.seq_len = seq_len
         # self.data 存储DataFrame对象,一个DataFrame对象表示一个小整体?
         self.data = {'frame_ships': [], 'trajectories': []}
-        # self.sample_data存放一段一段序列开头的帧id信息
+        # self.data_index存放一段一段序列开头的帧id信息
         self.data_index = np.array(
             [np.array([], dtype=int),
              np.array([], dtype=int)])
@@ -58,6 +58,8 @@ class TrajectoryDataset(Dataset):
                 if len(trajectory) < 2:
                     continue
                 # 保存轨迹(trajectories[i]表示id号为i的船的轨迹信息)
+                trajectory.reset_index(drop=True, inplace=True)
+                # 保存id船的轨迹(trajectories[ship_id]表示第id艘船的轨迹信息)
                 trajectories[ship_id] = trajectory
 
             self.data['trajectories'].append(trajectories)  # 一个文件表示List的一个元素
@@ -79,8 +81,10 @@ class TrajectoryDataset(Dataset):
             # 保存所有能构成训练序列的帧首(长度即为样本的长度)包含所有文件的——即为了生成start和end
             frame_id_in_set = []
             frames_id = sorted(list(frame_ships.keys()))  # 获取所有的帧号
-            # 这里减去seq_length是为了防止最后的序列没办法凑成一个完整的预测序列
-            maxframe = max(frames_id) - self.seq_len
+            # 这里减去seq_length是为了防止最后的序列没办法凑成一个完整的预测序列而越界
+            maxframe = max(
+                frames_id
+            ) - self.seq_len * config.skip  # TODO 这里的skip是我自己加上去的不知道对不对
             frames_id = [x for x in frames_id
                          if not x > maxframe]  #提取出能构成完整序列的帧
             set_id.extend([seti for _ in range(len(frames_id))])
@@ -94,7 +98,13 @@ class TrajectoryDataset(Dataset):
                 ], 0)
             ], 1)
 
-            # TODO 充分利用数据
+            # 打乱data顺序(假的shuffle?每次的epoch都一样的)
+            all_frame_list = [i for i in range(len(frames_id))]
+            if config.shuffle:
+                random.Random().shuffle(all_frame_list)
+            self.data_index = self.data_index[:, all_frame_list]
+
+            # TODO 充分利用数据?
             if 'train' == 'train':
                 self.data_index = np.append(
                     self.data_index, self.data_index[:, :config.batch_size], 1)
@@ -130,7 +140,7 @@ class TrajectoryDataset(Dataset):
             self.data['frame_ships'][cur_set][cur_frame_id +
                                               (self.config.max_seqlen - 1) *
                                               skip].loc[:, 'mmsi'])
-        print(cur_frame_id)
+        # print(cur_frame_id)
         present_ships = start_frame_ships | end_frame_ships  # 合并、去重,当前区间出现过的所有船
         # if len(start_frame_ships & end_frame_ships) == 0:
         #     return None  # TODO 也包含在后边了?
@@ -221,20 +231,3 @@ class TrajectoryDataset(Dataset):
                 nei_list[select_frame_idx, ship_i, ship_j] = 0
 
         return seq_list, nei_list, nei_num
-
-        # seq = self.__get_seq(index)
-        # mask = self.__get_mask(index)
-        # seqlen = self.__get_seqlen(index)
-        # mmsi = self.__get_mmsi(index)
-
-    def __get_seq(self, index):
-        pass
-
-    def __get_mask(self, index):
-        pass
-
-    def __get_seqlen(self, index):
-        pass
-
-    def __get_mmsi(self, index):
-        pass
