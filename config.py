@@ -22,6 +22,7 @@ class Config:
     clip = 1  # 用在trainers中的__train_epoch
     # 训练
     shuffle = True
+    train_test_ratio = 0.7
     random_rotate = True
     split = 'retrain'  # (有retrain和test)
     num_workers = 0  # 给DataLoader配置的
