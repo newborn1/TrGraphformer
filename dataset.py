@@ -10,8 +10,8 @@ from torch.utils.data import Dataset
 class TrajectoryDataset(Dataset):
     """customized pytorch dataset"""
 
-    def __init__(self, data_dir, seq_len, config) -> None:
-        super(TrajectoryDataset).__init__()
+    def _init_(self, data_dir, seq_len, config) -> None:
+        super(TrajectoryDataset)._init_()
         # TODO 不知道有没有问题!
         r"""
         Args:
@@ -98,7 +98,7 @@ class TrajectoryDataset(Dataset):
                 ], 0)
             ], 1)
 
-            # 打乱data顺序(假的shuffle?每次的epoch都一样的)
+            # 打乱data顺序(假的shuffle?每次的epoch都一样的)TODO 因为有dataloader所以可以不需要?
             all_frame_list = [i for i in range(len(frames_id))]
             if config.shuffle:
                 random.Random().shuffle(all_frame_list)
@@ -111,10 +111,10 @@ class TrajectoryDataset(Dataset):
 
             # TODO 还没划分val和train的数据集(打算在构造batch的时候再划分)
 
-    def __len__(self):
+    def _len_(self):
         return self.data_index.shape[1]
 
-    def __getitem__(self, index):
+    def _getitem_(self, index):
         """Gets items.
         
         Returns:
@@ -169,17 +169,17 @@ class TrajectoryDataset(Dataset):
             # TODO 要不要删去轨迹点较少的船的轨迹?——删了会不会导致船与船间的影响被忽略
             if sum(cur_traj[:, 0] > 0) < 5: continue
             cur_traj = (cur_traj.reshape(-1, 1, 2), )  # 变成三维的信息
-            traject = traject.__add__(cur_traj)
+            traject = traject._add_(cur_traj)
 
         # 当前区间(index对应的data_index区间)内的所有船的信息(时间信息?),合并后同一个时间会合在一起,观看合并的维度变化即可
         traject_batch = np.concatenate(traject, axis=1)
-        seq_list, nei_list, nei_num = self.__get_social_inputs_numpy(
+        seq_list, nei_list, nei_num = self._get_social_inputs_numpy(
             traject_batch)
         num_ships.append(traject_batch.shape[1])
 
         return traject_batch, seq_list, nei_list, nei_num, num_ships
 
-    def __get_social_inputs_numpy(self, nodes):
+    def _get_social_inputs_numpy(self, nodes):
         r"""构建图(船是节点,是否相互有影响是边)
         batch:
             shape->[max_seqlen,sum_ships_num_in_frames,2]

@@ -13,7 +13,7 @@ from util import *
 class Trainer:
     """输入训练或者测试的数据集和模型进行训练和预测"""
 
-    def __init__(self, train_trajectoryDataset, test_trajectoryDataset, model, config) -> None:
+    def _init_(self, train_trajectoryDataset, test_trajectoryDataset, model, config) -> None:
         self.model = model.cuda()
         self.config = config
         self.trainloader = DataLoader(train_trajectoryDataset,
@@ -26,15 +26,15 @@ class Trainer:
                                      pin_memory=True,
                                      batch_size=1,
                                      num_workers=self.config.num_workers)
-        self.__set_optimizer()
+        self._set_optimizer()
         self.writer = SummaryWriter(config.logdir)
 
-    def __set_optimizer(self):
+    def _set_optimizer(self):
         self.optimizer = torch.optim.Adam(self.model.parameters(),
                                           lr=self.config.learning_rate)
         self.criterion = nn.MSELoss(reduction='none')
 
-    def __train_epoch(self, epoch=0):
+    def _train_epoch(self, epoch=0):
         """根据条件运行给定方法和次数
         Args:
             epoch:表示训练或预测次数
@@ -83,19 +83,19 @@ class Trainer:
                     'train-(epoch {} - batch_idx {}), train_loss = {:.5f}, time/batch = {:.5f} '
                     .format(epoch, idx, loss.item(), end - start))
 
-        train_loss_epoch = loss_epoch / len(self.loader)
+        train_loss_epoch = loss_epoch / len(self.trainloader)
 
         return train_loss_epoch
 
     def test(self):
         print('开始测试')
         self.model.eval()
-        test_error, test_final_error = self.__test_epoch()
+        test_error, test_final_error = self._test_epoch()
         print(f'test_error: {test_error} test_final_error: {test_final_error}')
 
     @torch.no_grad()
-    def __test_epoch(self, epoch=0):
-        # TODO 还未完成
+    def _test_epoch(self, epoch=0):
+        # TODO 还未完成(返回值)
         self.model.eval()
         error_epoch,final_error_epoch = 0,0
         error_cnt_epoch,final_error_cnt_epoch = 1e-5,1e-5
@@ -132,7 +132,7 @@ class Trainer:
         return val_error_epoch, val_final_error_epoch
 
 
-    def __save_model(self, epoch):
+    def _save_model(self, epoch):
         model_path = '{0}/{1}/{1}_{2}.tar'.format(self.config.save_dir,
                                                   self.config.train_model,
                                                   epoch)
@@ -149,15 +149,15 @@ class Trainer:
         val_error, val_final_error = 0, 0
         pbar = tqdm(range(self.config.max_seqlen))
         for epoch in pbar:
-            train_loss = self.__train_epoch(epoch)
+            train_loss = self._train_epoch(epoch)
 
             if epoch % self.config.start_val == 0:
-                val_error, val_final_error = self.__test_epoch(epoch)
+                val_error, val_final_error = self._test_epoch(epoch)
 
                 self.best_ade = val_error if val_final_error < self.best_fde else self.best_ade
                 self.best_epoch = epoch if val_final_error < self.best_fde else self.best_epoch
                 self.best_fde = val_final_error if val_final_error < self.best_fde else self.best_fde
-                self.__save_model(epoch)
+                self._save_model(epoch)
 
                 self.writer.add_hparams(
                     {
