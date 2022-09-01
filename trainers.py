@@ -13,19 +13,20 @@ from util import *
 class Trainer:
     """输入训练或者测试的数据集和模型进行训练和预测"""
 
-    def _init_(self, train_trajectoryDataset, test_trajectoryDataset, model, config) -> None:
+    def __init__(self, train_trajectoryDataset, test_trajectoryDataset, model,
+                 config) -> None:
         self.model = model.cuda()
         self.config = config
         self.trainloader = DataLoader(train_trajectoryDataset,
-                                 shuffle=True,
-                                 pin_memory=True,
-                                 batch_size=self.config.batch_size,
-                                 num_workers=self.config.num_workers)
+                                      shuffle=True,
+                                      pin_memory=True,
+                                      batch_size=self.config.batch_size,
+                                      num_workers=self.config.num_workers)
         self.valloader = DataLoader(test_trajectoryDataset,
-                                     shuffle=True,
-                                     pin_memory=True,
-                                     batch_size=1,
-                                     num_workers=self.config.num_workers)
+                                    shuffle=True,
+                                    pin_memory=True,
+                                    batch_size=1,
+                                    num_workers=self.config.num_workers)
         self._set_optimizer()
         self.writer = SummaryWriter(config.logdir)
 
@@ -97,8 +98,8 @@ class Trainer:
     def _test_epoch(self, epoch=0):
         # TODO 还未完成(返回值)
         self.model.eval()
-        error_epoch,final_error_epoch = 0,0
-        error_cnt_epoch,final_error_cnt_epoch = 1e-5,1e-5
+        error_epoch, final_error_epoch = 0, 0
+        error_cnt_epoch, final_error_cnt_epoch = 1e-5, 1e-5
 
         pbar = tqdm(enumerate(self.valloader), total=len(self.valloader))
         # 一个batch
@@ -106,6 +107,8 @@ class Trainer:
             start = time.time()
             # TODO 目前只支持一个batch
             batch = [batch[i][0] for i in range(len(batch))]
+            inputs = rotate_shift_batch(batch, self.config,
+                                        self.config.random_rotate)
             inputs = tuple([i.float().cuda() for i in inputs])
 
             batch_abs, batch_norm, shift_value, seq_list, nei_list, nei_num, ship_num = inputs
@@ -124,13 +127,12 @@ class Trainer:
             if idx % 1 == 0:
                 pbar.set_description(
                     'train-(epoch {} - batch_idx {}), val_error = {:.5f}, time/batch = {:.5f} '
-                        .format(epoch, idx, error, end - start))
+                    .format(epoch, idx, error, end - start))
 
         val_error_epoch = error_epoch / len(self.valloader)
         val_final_error_epoch = final_error_epoch / len(self.valloader)
 
         return val_error_epoch, val_final_error_epoch
-
 
     def _save_model(self, epoch):
         model_path = '{0}/{1}/{1}_{2}.tar'.format(self.config.save_dir,
@@ -147,9 +149,9 @@ class Trainer:
         print('开始训练')
         # 采用交叉验证
         val_error, val_final_error = 0, 0
-        pbar = tqdm(range(self.config.max_seqlen))
+        pbar = tqdm(range(self.config.max_epoch))
         for epoch in pbar:
-            train_loss = self._train_epoch(epoch)
+            # train_loss = self._train_epoch(epoch) TODO 后面要加上去
 
             if epoch % self.config.start_val == 0:
                 val_error, val_final_error = self._test_epoch(epoch)

@@ -10,8 +10,8 @@ from torch.utils.data import Dataset
 class TrajectoryDataset(Dataset):
     """customized pytorch dataset"""
 
-    def _init_(self, data_dir, seq_len, config) -> None:
-        super(TrajectoryDataset)._init_()
+    def __init__(self, data_dir, seq_len, config) -> None:
+        super(TrajectoryDataset).__init__()
         # TODO 不知道有没有问题!
         r"""
         Args:
@@ -111,10 +111,10 @@ class TrajectoryDataset(Dataset):
 
             # TODO 还没划分val和train的数据集(打算在构造batch的时候再划分)
 
-    def _len_(self):
+    def __len__(self):
         return self.data_index.shape[1]
 
-    def _getitem_(self, index):
+    def __getitem__(self, index):
         """Gets items.
         
         Returns:
@@ -169,7 +169,7 @@ class TrajectoryDataset(Dataset):
             # TODO 要不要删去轨迹点较少的船的轨迹?——删了会不会导致船与船间的影响被忽略
             if sum(cur_traj[:, 0] > 0) < 5: continue
             cur_traj = (cur_traj.reshape(-1, 1, 2), )  # 变成三维的信息
-            traject = traject._add_(cur_traj)
+            traject = traject.__add__(cur_traj)
 
         # 当前区间(index对应的data_index区间)内的所有船的信息(时间信息?),合并后同一个时间会合在一起,观看合并的维度变化即可
         traject_batch = np.concatenate(traject, axis=1)
